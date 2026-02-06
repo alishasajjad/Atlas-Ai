@@ -1,1 +1,212 @@
+# 🎤 Nova AI Voice Control Assistant
 
+An advanced Python-based voice-controlled assistant with a modern Streamlit web interface. Nova AI continuously listens to your voice, understands natural language commands, and performs various desktop automation tasks while providing intelligent conversational responses using the Groq API.
+
+## ✨ Features
+
+- **🎙️ Continuous Voice Recognition**: Real-time speech-to-text conversion using microphone input
+- **🔊 Text-to-Speech**: Audible responses using pyttsx3
+- **🤖 AI-Powered Conversations**: Advanced conversational AI using Groq API
+- **🖥️ Desktop Automation**: 
+  - Open applications (Chrome, Notepad)
+  - Get current time and date
+  - Search Google and YouTube
+- **🎨 Modern Dark Theme UI**: Clean, professional, and user-friendly Streamlit interface
+- **📊 Real-time Status Updates**: Visual feedback for listening, processing, and responding states
+- **🔄 Continuous Interaction**: No need to restart the app between commands
+- **🛡️ Error Handling**: Graceful error handling and user feedback
+
+## 📋 Prerequisites
+
+- Python 3.8 or higher
+- Windows operating system (optimized for Windows)
+- Microphone access
+- Internet connection (for Groq API and speech recognition)
+
+## 🚀 Installation
+
+### 1. Clone or Download the Project
+
+```bash
+cd "Nova AI Voice Control Assistant"
+```
+
+### 2. Create a Virtual Environment
+
+```bash
+python -m venv venv
+```
+
+### 3. Activate the Virtual Environment
+
+**Windows (PowerShell):**
+
+```powershell
+.\venv\Scripts\Activate.ps1
+```
+
+**Windows (Command Prompt):**
+
+```cmd
+venv\Scripts\activate.bat
+```
+
+### 4. Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+**Note**: If you encounter issues installing `pyaudio` on Windows, you may need to install it manually:
+
+```bash
+pip install pipwin
+pipwin install pyaudio
+```
+
+Or download the appropriate wheel file from [here](https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyaudio) and install it.
+
+### 5. Configure Groq API Key
+
+1. Get your API key from [Groq Console](https://console.groq.com/keys)
+2. Create a `.env` file in the project root directory
+3. Add your API key (keep the real value only in `.env`, never in git history):
+
+```env
+GROQ_API_KEY=your_groq_api_key_here
+```
+
+You can copy `.env.example` to `.env` and update it locally with your key.
+
+## 🎯 Usage
+
+### Start the Application
+
+```bash
+streamlit run frontend/app.py
+```
+
+The application will open in your default web browser at `http://localhost:8501`.
+
+### Using Nova AI
+
+1. **Start Listening**: Click the "▶️ Start" button in the sidebar
+2. **Speak Commands**: Nova AI will continuously listen for your voice commands
+3. **Stop Listening**: Click the "⏹️ Stop" button when you want to pause
+
+### Available Voice Commands
+
+#### System Commands
+
+- **Time**: "What time is it?" or "Tell me the time"
+- **Date**: "What's the date today?" or "What date is it?"
+- **Open Chrome**: "Open Chrome" or "Open Google Chrome"
+- **Open Notepad**: "Open Notepad"
+
+#### Search Commands
+
+- **Google Search**: "Search Google for [your query]"
+- **YouTube Search**: "Search YouTube for [your query]" or "Play [song name]"
+
+#### Conversational AI
+
+- Ask any general question: "What is artificial intelligence?", "Tell me a joke", etc.
+- Nova AI will use the Groq API to provide intelligent responses
+
+## 📁 Project Structure
+
+```text
+Nova AI Voice Control Assistant/
+│
+├── frontend/                      # Frontend (UI) layer
+│   ├── __init__.py
+│   └── app.py                     # Main Streamlit application
+│
+├── backend/                       # Backend (core logic) layer
+│   ├── __init__.py
+│   ├── voice_recognition.py       # Speech-to-text module
+│   ├── text_to_speech.py          # Text-to-speech module
+│   ├── command_handler.py         # Desktop automation commands
+│   └── groq_client.py             # Groq API integration
+│
+├── requirements.txt               # Python dependencies
+├── .env.example                   # Example environment variables file
+├── README.md                      # This file
+└── venv/                          # Virtual environment (created after setup)
+```
+
+## 🔧 Configuration
+
+### Adjusting Voice Recognition Sensitivity
+
+Edit `voice_recognition.py`:
+
+- Modify `phrase_time_limit` in `listen_continuously()` to change maximum phrase length
+- Adjust `timeout` parameter to change listening timeout
+
+### Customizing Text-to-Speech
+
+Edit `text_to_speech.py`:
+
+- Change `rate` property to adjust speech speed (default: 150)
+- Modify `volume` property to change volume level (default: 0.9)
+- Select different voice in `setup_voice()` method
+
+### Groq API Model
+
+Edit `groq_client.py`:
+
+- Change the `model` parameter in the `chat()` method
+- Available models: `llama-3.1-8b-instant`, `llama-3.1-70b-versatile`, `mixtral-8x7b-32768`, etc.
+
+## 🐛 Troubleshooting
+
+### Microphone Not Working
+
+- Ensure your microphone is connected and enabled
+- Check Windows microphone permissions
+- Try adjusting microphone sensitivity in Windows settings
+
+### Speech Recognition Errors
+
+- Ensure you have an active internet connection (Google Speech Recognition requires internet)
+- Check if your microphone is working in other applications
+- Try speaking more clearly and reducing background noise
+
+### Groq API Errors
+
+- Verify your API key is correct in the `.env` file
+- Check your internet connection
+- Ensure you have API credits/quota available
+
+### PyAudio Installation Issues
+
+- On Windows, use `pipwin` or download pre-built wheels
+- Ensure you have Visual C++ Redistributable installed
+
+## 📝 Notes
+
+- The application requires an internet connection for speech recognition and Groq API
+- First-time microphone setup may take a few seconds to adjust for ambient noise
+- Some commands may require administrator privileges (e.g., opening certain applications)
+- The conversation history is stored in session state and will be cleared when you refresh the page
+
+## 🤝 Contributing
+
+Feel free to submit issues, fork the repository, and create pull requests for any improvements.
+
+## 📄 License
+
+This project is open source and available for educational and personal use.
+
+## 🙏 Acknowledgments
+
+- Streamlit for the web framework
+- SpeechRecognition library for voice recognition
+- pyttsx3 for text-to-speech
+- Groq for AI capabilities
+- All other open-source contributors
+
+---
+
+**Made with ❤️ for voice-controlled automation**
