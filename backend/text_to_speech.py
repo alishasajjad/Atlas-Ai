@@ -28,27 +28,27 @@ class TextToSpeech:
         # Get available voices
         voices = self.engine.getProperty("voices")
 
-        # Slightly slower, clearer speech for Urdu-style sentences
+        # Clear, natural speech rate for English
         self.engine.setProperty("rate", 140)  # Speed of speech
         self.engine.setProperty("volume", 0.95)  # Volume level (0.0 to 1.0)
 
-        # Try to choose a voice that sounds more natural for Urdu/Hindi-like speech.
+        # Try to choose a clear English voice.
         # This heavily depends on which voices are installed on Windows, so we use
         # best-effort heuristics and always fall back gracefully.
         selected_id = None
         if voices:
-            # 1) Prefer voices that explicitly mention Urdu or related locales
-            urdu_keywords = ["urdu", "ur-", "pakistan"]
+            # Prefer English voices
+            english_keywords = ["english", "en-", "us", "uk", "zira", "david"]
             for voice in voices:
                 name_lower = voice.name.lower()
                 id_lower = str(getattr(voice, "id", "")).lower()
-                if any(k in name_lower for k in urdu_keywords) or any(
-                    k in id_lower for k in urdu_keywords
+                if any(k in name_lower for k in english_keywords) or any(
+                    k in id_lower for k in english_keywords
                 ):
                     selected_id = voice.id
                     break
 
-            # 2) Otherwise, prefer a neutral/female voice (as before)
+            # Otherwise, prefer a neutral/female voice
             if selected_id is None:
                 for voice in voices:
                     name_lower = voice.name.lower()
@@ -68,7 +68,7 @@ class TextToSpeech:
         """
         if not text or self.muted:
             # Either there is nothing to say, or voice output has been
-            # muted via a "stop" / "chup ho jao" style command.
+            # muted via a "stop speaking" or "mute" command.
             return
         
         def speak_thread():

@@ -16,24 +16,16 @@ class VoiceRecognizer:
     def __init__(self):
         """Initialize the voice recognizer with default settings."""
         self.recognizer = sr.Recognizer()
-        self.microphone = sr.Microphone()
+        self.microphone = None  # Will be initialized when needed
         self.audio_queue = queue.Queue()
         self.is_listening = False
         self.recognition_thread = None
-        
-        # Adjust for ambient noise
-        print("Adjusting for ambient noise... Please wait.")
-        with self.microphone as source:
-            self.recognizer.adjust_for_ambient_noise(source, duration=1)
-        print("Ambient noise adjustment complete.")
+        self._microphone_context = None  # Track context manager
     
     def recognize_audio(self, audio_data):
         """
         Convert audio data to text using Google's speech recognition.
-
-        This method is bilingual-friendly:
-        - First, it tries to recognize English (default)
-        - If that fails with an UnknownValueError, it tries Urdu (ur-PK)
+        English-only recognition.
 
         Args:
             audio_data: Audio data from the microphone
@@ -41,21 +33,12 @@ class VoiceRecognizer:
         Returns:
             str: Recognized text (lowercased) or None if recognition fails
         """
-        # 1) Try English (default behaviour – keeps existing commands working)
         try:
-            text = self.recognizer.recognize_google(audio_data)
+            text = self.recognizer.recognize_google(audio_data, language="en-US")
             return text.lower()
         except sr.UnknownValueError:
-            # 2) Try Urdu as a fallback
-            try:
-                text = self.recognizer.recognize_google(audio_data, language="ur-PK")
-                return text.lower()
-            except sr.UnknownValueError:
-                # Speech was unintelligible in both languages
-                return None
-            except sr.RequestError as e:
-                print(f"Could not request results from Urdu speech recognition: {e}")
-                return None
+            # Speech was unintelligible
+            return None
         except sr.RequestError as e:
             # API was unreachable or unresponsive
             print(f"Could not request results from speech recognition service: {e}")
@@ -69,39 +52,59 @@ class VoiceRecognizer:
             callback: Function to call when speech is recognized (receives text as parameter)
             status_callback: Optional function to call with status updates
         """
+        if self.is_listening:
+            return  # Already listening
+        
         self.is_listening = True
+        
+        # Initialize microphone if not already done
+        if self.microphone is None:
+            try:
+                self.microphone = sr.Microphone()
+                # Adjust for ambient noise
+                print("Adjusting for ambient noise... Please wait.")
+                with self.microphone as source:
+                    self.recognizer.adjust_for_ambient_noise(source, duration=1)
+                print("Ambient noise adjustment complete.")
+            except Exception as e:
+                print(f"Error initializing microphone: {e}")
+                self.is_listening = False
+                return
         
         def audio_capture_thread():
             """Thread function to continuously capture audio."""
-            with self.microphone as source:
-                while self.is_listening:
-                    try:
-                        if status_callback:
-                            status_callback("listening")
+            try:
+                with self.microphone as source:
+                    self._microphone_context = source
+                    while self.is_listening:
+                        try:
+                            if status_callback:
+                                status_callback("listening")
 
-                        # Let the recognizer listen until it detects a phrase
-                        # based on ambient noise and internal VAD, without a
-                        # fixed phrase_time_limit so the user can speak
-                        # naturally and pause briefly.
-                        audio = self.recognizer.listen(source)
+                            # Let the recognizer listen until it detects a phrase
+                            audio = self.recognizer.listen(source, timeout=1, phrase_time_limit=5)
 
-                        if status_callback:
-                            status_callback("processing")
+                            if status_callback:
+                                status_callback("processing")
 
-                        # Recognize speech
-                        text = self.recognize_audio(audio)
+                            # Recognize speech
+                            text = self.recognize_audio(audio)
 
-                        if text:
-                            callback(text)
+                            if text:
+                                callback(text)
 
-                    except sr.WaitTimeoutError:
-                        # Timeout is normal, continue listening
-                        continue
-                    except Exception as e:
-                        if status_callback:
-                            status_callback(f"error: {str(e)}")
-                        print(f"Error in audio capture: {e}")
-                        continue
+                        except sr.WaitTimeoutError:
+                            # Timeout is normal, continue listening
+                            continue
+                        except Exception as e:
+                            if status_callback:
+                                status_callback(f"error: {str(e)}")
+                            print(f"Error in audio capture: {e}")
+                            continue
+            except Exception as e:
+                print(f"Error in microphone context: {e}")
+            finally:
+                self._microphone_context = None
         
         # Start the recognition thread
         self.recognition_thread = threading.Thread(target=audio_capture_thread, daemon=True)
@@ -110,6 +113,9 @@ class VoiceRecognizer:
     def stop_listening(self):
         """Stop the continuous listening process."""
         self.is_listening = False
+        # Give thread time to exit gracefully
         if self.recognition_thread:
             self.recognition_thread.join(timeout=2)
+        # Clear microphone context reference
+        self._microphone_context = None
 

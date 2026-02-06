@@ -255,9 +255,8 @@ class CommandHandler:
         selected = self.desktop.get_selected_text_from_active_window()
         if not selected:
             return (
-                "Boss, mujhe screen se koi selected text nahi mila. "
-                "Please pehle text select karen phir dobara bolen "
-                "'search this on Chrome'."
+                "No text is currently selected on screen. "
+                "Please select some text first, then say 'search this on Chrome'."
             )
 
         return self.desktop.search_in_active_browser(selected)
@@ -293,7 +292,7 @@ class CommandHandler:
         location_hint = None
         name_part = after
 
-        for marker in ["on desktop", "in desktop", "desktop pe"]:
+        for marker in ["on desktop", "in desktop"]:
             if marker in after:
                 name_part = after.split(marker, 1)[0].strip()
                 location_hint = "desktop"
@@ -311,7 +310,7 @@ class CommandHandler:
 
         name_part = name_part.strip().strip('"').strip("'")
         if not name_part:
-            return "Boss, mujhe file ka naam samajh nahi aaya."
+            return "File name was not clear. Please specify a file name."
 
         return self.desktop.save_file_with_name(name_part, location_hint=location_hint)
 
@@ -374,8 +373,8 @@ class CommandHandler:
                 "name": "Search in browser",
                 "description": "Search the active browser window using your query.",
                 "examples": [
-                    "Chrome par weather today search karo",
-                    "Browser pe AI tools search karo",
+                    "Search weather today in Chrome",
+                    "Search AI tools in browser",
                 ],
             },
             {
@@ -384,7 +383,7 @@ class CommandHandler:
                 "description": "Use selected screen text as a search query in Chrome.",
                 "examples": [
                     "Search this on Chrome",
-                    "Isko Chrome pe search karo",
+                    "Search selected text",
                 ],
             },
             {
@@ -425,7 +424,7 @@ class CommandHandler:
                 "description": "Open the Windows Recycle Bin and act on it.",
                 "examples": [
                     "Open Recycle Bin",
-                    "Sab select karo",
+                    "Select everything",
                     "Delete everything",
                 ],
             },
@@ -444,7 +443,7 @@ class CommandHandler:
                 "description": "Open websites directly or via Google search.",
                 "examples": [
                     "Open website youtube.com",
-                    "WhatsApp open karo",
+                    "Open WhatsApp",
                 ],
             },
             {
@@ -454,7 +453,7 @@ class CommandHandler:
                 "examples": [
                     "Close this",
                     "Yes",
-                    "Nahi",
+                    "No",
                 ],
             },
             {
@@ -565,28 +564,28 @@ class CommandHandler:
         # Check for Microsoft Office applications
         if any(
             phrase in text_lower
-            for phrase in ["open word", "microsoft word", "word khol do", "word kholo"]
+            for phrase in ["open word", "microsoft word"]
         ):
             return self.open_word()
 
         if any(
             phrase in text_lower
-            for phrase in ["open excel", "microsoft excel", "excel khol do", "excel kholo"]
+            for phrase in ["open excel", "microsoft excel"]
         ):
             return self.open_excel()
 
         if any(
             phrase in text_lower
-            for phrase in ["open powerpoint", "powerpoint khol do", "power point kholo"]
+            for phrase in ["open powerpoint", "microsoft powerpoint"]
         ):
             return self.open_powerpoint()
 
-        # ------------- Extended commands (bilingual-ish heuristics) ---------
+        # ------------- Extended commands (English only) ---------
 
-        # Recycle Bin (English + a bit of Roman Urdu)
+        # Recycle Bin
         if any(
             phrase in text_lower
-            for phrase in ["recycle bin", "dustbin", "kooda", "kora dan", "kooday ka dabba"]
+            for phrase in ["recycle bin", "dustbin"]
         ):
             return self.open_recycle_bin()
 
@@ -595,32 +594,32 @@ class CommandHandler:
         # Escape for no/cancel on the currently focused dialog.
         if any(
             phrase in text_lower
-            for phrase in ["yes", "haan", "han", "confirm", "ok karo", "theek hai"]
+            for phrase in ["yes", "confirm", "ok", "okay"]
         ):
             return self.desktop.confirm_active_dialog(accept=True)
 
         if any(
             phrase in text_lower
-            for phrase in ["no", "nahi", "nahin", "cancel", "mat karo"]
+            for phrase in ["no", "cancel", "abort"]
         ):
             return self.desktop.confirm_active_dialog(accept=False)
 
         # Close Chrome / Notepad (simple process-based close)
         if any(
             phrase in text_lower
-            for phrase in ["close chrome", "band karo chrome", "chrome band karo"]
+            for phrase in ["close chrome"]
         ):
             return self.close_application("chrome.exe")
         if any(
             phrase in text_lower
-            for phrase in ["close notepad", "notepad band karo", "band karo notepad"]
+            for phrase in ["close notepad"]
         ):
             return self.close_application("notepad.exe")
 
         # Generic "close it" / "close this" → active window close (Alt+F4)
         if any(
             phrase in text_lower
-            for phrase in ["close it", "close this", "isko band karo", "ye band karo"]
+            for phrase in ["close it", "close this", "close window"]
         ):
             # Alt+F4 will close the currently focused window. Clear our
             # logical context so future commands don't keep referring to a
@@ -629,13 +628,13 @@ class CommandHandler:
             return self.desktop.close_active_window()
 
         # Open Chrome with specific account/profile name
-        if "open chrome with" in text_lower or "chrome is account se kholo" in text_lower:
-            # Extract the part after 'with' or 'se'
+        if "open chrome with" in text_lower or "chrome profile" in text_lower:
+            # Extract the part after 'with' or 'profile'
             account_part = text_lower
             if "open chrome with" in account_part:
                 account_part = account_part.split("open chrome with", 1)[-1]
-            elif "chrome is account se kholo" in account_part:
-                account_part = account_part.split("chrome is account se kholo", 1)[-1]
+            elif "chrome profile" in account_part:
+                account_part = account_part.split("chrome profile", 1)[-1]
             account_part = (
                 account_part.replace("account", "")
                 .replace("name", "")
@@ -646,7 +645,7 @@ class CommandHandler:
                 return self.open_chrome_profile(account_part)
 
         # More natural profile switching while Chrome is already active, e.g.:
-        # "open profile Alisha", "profile Alisha Sajjad open karo".
+        # "open profile Alisha", "profile Alisha".
         if "open profile" in text_lower or "profile " in text_lower:
             profile_part = text_lower
             if "open profile" in profile_part:
@@ -654,22 +653,21 @@ class CommandHandler:
             elif "profile" in profile_part:
                 profile_part = profile_part.split("profile", 1)[-1]
 
-            for filler in ["open", "karo", "kholo", "account", "name", "profile"]:
+            for filler in ["open", "account", "name", "profile"]:
                 profile_part = profile_part.replace(filler, "")
             profile_part = profile_part.strip()
 
             if profile_part:
                 return self.open_chrome_profile(profile_part)
 
-        # Open arbitrary website (e.g. "open youtube.com", "is website ko open karo")
+        # Open arbitrary website (e.g. "open youtube.com")
         if any(
             phrase in text_lower
             for phrase in [
                 "open website",
                 "website open",
                 "site open",
-                "site kholo",
-                "website kholo",
+                "open site",
             ]
         ):
             # Remove common boilerplate words and pass the rest
@@ -678,17 +676,14 @@ class CommandHandler:
                 "open website",
                 "website open",
                 "site open",
-                "website kholo",
-                "site kholo",
+                "open site",
             ]:
                 cleaned = cleaned.replace(phrase, "")
-            cleaned = cleaned.replace("please", "").replace("karo", "").replace(
-                "karen", ""
-            ).strip()
+            cleaned = cleaned.replace("please", "").strip()
             if cleaned:
                 return self.open_website_from_text(cleaned)
 
-        # Direct WhatsApp Web support: e.g. "whatsapp open karo", "open whatsapp".
+        # Direct WhatsApp Web support: e.g. "open whatsapp"
         if "whatsapp" in text_lower:
             # Prefer keeping everything in the currently active Chrome window
             if self.active_app == "chrome":
@@ -705,16 +700,16 @@ class CommandHandler:
         # Active-window selection and deletion
         if any(
             phrase in text_lower
-            for phrase in ["select everything", "select all", "sab select karo"]
+            for phrase in ["select everything", "select all"]
         ):
             return self.desktop.select_all_in_active_window()
 
         if any(
             phrase in text_lower
-            for phrase in ["delete this", "ye delete karo", "delete everything", "sab delete karo"]
+            for phrase in ["delete this", "delete everything", "delete all"]
         ):
             # If user says "delete everything", we first select-all then delete
-            if "delete everything" in text_lower or "sab delete karo" in text_lower:
+            if "delete everything" in text_lower or "delete all" in text_lower:
                 self.desktop.select_all_in_active_window()
             return self.desktop.delete_selection_in_active_window()
 
@@ -728,8 +723,7 @@ class CommandHandler:
             for phrase in [
                 "search this on chrome",
                 "search this in chrome",
-                "isko chrome pe search karo",
-                "isko chrome par search karo",
+                "search selected text",
             ]
         ):
             return self._search_selected_text_in_chrome()
@@ -738,76 +732,58 @@ class CommandHandler:
         if any(
             phrase in text_lower
             for phrase in [
-                "chrome par",
-                "chrome pe",
-                "browser par",
-                "browser pe",
-                "chrome par ye search karo",
-                "chrome par search karo",
-                "google par ye search karo",
-                "google pe ye search karo",
+                "search in chrome",
+                "search in browser",
+                "chrome search",
+                "browser search",
             ]
         ):
             # Remove boilerplate and treat the rest as query
             cleaned = text_lower
             for phrase in [
-                "chrome par ye search karo",
-                "chrome par search karo",
-                "chrome par",
-                "chrome pe",
-                "browser par",
-                "browser pe",
-                "google par ye search karo",
-                "google pe ye search karo",
-                "search karo",
+                "search in chrome",
+                "search in browser",
+                "chrome search",
+                "browser search",
+                "search",
             ]:
                 cleaned = cleaned.replace(phrase, "")
-            cleaned = cleaned.replace("please", "").replace("boss", "").strip()
+            cleaned = cleaned.replace("please", "").strip()
             if cleaned:
                 return self.desktop.search_in_active_browser(cleaned)
 
         # ---------------------- Low-level text editing keys --------------------
 
-        # Space insertion in any active text field. Allow many fuzzy phrases:
-        # "thoda space add karo", "yahaan space do", "ek space", etc.
+        # Space insertion in any active text field
         if any(
             phrase in text_lower
             for phrase in [
-                "thoda space",
-                "space add",
-                "space do",
-                "space dedo",
-                "yahaan space",
-                "yahan space",
-                "ek space",
+                "space",
+                "add space",
+                "insert space",
             ]
-        ) or ((" space" in text_lower or "space " in text_lower) and "backspace" not in text_lower):
+        ) and "backspace" not in text_lower:
             return self.desktop.press_space()
 
-        # Backspace: "ek backspace", "thoda peeche jao", "peeche hatao", etc.
+        # Backspace
         if any(
             phrase in text_lower
             for phrase in [
                 "backspace",
-                "ek backspace",
-                "thoda peeche",
-                "peeche jao",
-                "peeche hatao",
-                "last character hatao",
+                "delete character",
+                "remove character",
             ]
         ):
             return self.desktop.press_backspace()
 
-        # Enter / new line: "enter karo", "neeche aa jao", "next line", etc.
+        # Enter / new line
         if any(
             phrase in text_lower
             for phrase in [
-                "enter karo",
-                "enter press",
-                "neeche aa jao",
+                "enter",
+                "press enter",
                 "next line",
                 "new line",
-                "nayi line",
                 "line break",
             ]
         ):
@@ -818,15 +794,13 @@ class CommandHandler:
         # Typing into the active window (primarily Notepad / Word / etc.).
         # Examples:
         # - "type hello world"
-        # - "notepad pe likho this is a test"
-        if "type " in text_lower or "likho " in text_lower:
-            trigger_index = max(text_lower.rfind("type "), text_lower.rfind("likho "))
+        if "type " in text_lower:
+            trigger_index = text_lower.rfind("type ")
             if trigger_index != -1:
                 # Use the original text slice so we preserve casing/punctuation.
                 raw_suffix = text[trigger_index:]
                 cleaned_suffix = (
                     raw_suffix.replace("type ", "", 1)
-                    .replace("likho ", "", 1)
                     .replace("please", "")
                     .strip()
                 )
@@ -839,7 +813,7 @@ class CommandHandler:
         # - "new file"
         if any(
             phrase in text_lower
-            for phrase in ["open new tab", "new tab", "new file", "naya file", "nayi file"]
+            for phrase in ["open new tab", "new tab", "new file"]
         ):
             return self.desktop.new_document_in_active_app()
 
@@ -873,8 +847,6 @@ class CommandHandler:
                 "save it",
                 "save note",
                 "save file",
-                "isko save karo",
-                "ye save karo",
             ]
         ):
             return self._save_in_active_editor()
@@ -883,7 +855,7 @@ class CommandHandler:
         # whatever file name is currently present.
         if any(
             phrase in text_lower
-            for phrase in ["save on desktop", "desktop pe save karo", "save to desktop"]
+            for phrase in ["save on desktop", "save to desktop"]
         ):
             return self.desktop.save_current_dialog_to_desktop()
 
@@ -897,19 +869,19 @@ class CommandHandler:
         # System power commands (these should normally be gated by confirmation in UI)
         if any(
             phrase in text_lower
-            for phrase in ["shutdown", "shut down", "band kar do", "system band"]
+            for phrase in ["shutdown", "shut down"]
         ):
             return "SYSTEM_SHUTDOWN_REQUEST"
 
         if any(
             phrase in text_lower
-            for phrase in ["restart", "reboot", "dobara start", "restart karo"]
+            for phrase in ["restart", "reboot"]
         ):
             return "SYSTEM_RESTART_REQUEST"
 
         if any(
             phrase in text_lower
-            for phrase in ["sleep", "sleep mode", "sula do", "so jao"]
+            for phrase in ["sleep", "sleep mode"]
         ):
             return "SYSTEM_SLEEP_REQUEST"
 
@@ -920,10 +892,7 @@ class CommandHandler:
             phrase in text_lower
             for phrase in [
                 "scroll down",
-                "neeche scroll",
                 "page down",
-                "neeche jao",
-                "scroll neeche",
             ]
         ):
             return self.desktop.scroll_down()
@@ -932,10 +901,7 @@ class CommandHandler:
             phrase in text_lower
             for phrase in [
                 "scroll up",
-                "upar scroll",
                 "page up",
-                "upar jao",
-                "scroll upar",
             ]
         ):
             return self.desktop.scroll_up()
@@ -945,8 +911,7 @@ class CommandHandler:
             phrase in text_lower
             for phrase in [
                 "click that",
-                "isko click karo",
-                "click karo",
+                "click",
                 "left click",
             ]
         ):
@@ -957,7 +922,6 @@ class CommandHandler:
             for phrase in [
                 "right click",
                 "right-click",
-                "right click karo",
             ]
         ):
             return self.desktop.right_click()
@@ -966,25 +930,25 @@ class CommandHandler:
 
         if any(
             phrase in text_lower
-            for phrase in ["new tab", "open new tab", "naya tab", "nayi tab"]
+            for phrase in ["new tab", "open new tab"]
         ):
             return self.desktop.new_tab()
 
         if any(
             phrase in text_lower
-            for phrase in ["next tab", "aagay wala tab", "agli tab"]
+            for phrase in ["next tab", "switch to next tab"]
         ):
             return self.desktop.next_tab()
 
         if any(
             phrase in text_lower
-            for phrase in ["previous tab", "pichli tab", "peeche wala tab"]
+            for phrase in ["previous tab", "switch to previous tab"]
         ):
             return self.desktop.previous_tab()
 
         if any(
             phrase in text_lower
-            for phrase in ["close tab", "ye tab band karo", "is tab ko band karo"]
+            for phrase in ["close tab", "close this tab"]
         ):
             return self.desktop.close_tab()
 
@@ -995,8 +959,8 @@ class CommandHandler:
             after = text_lower.split("create folder", 1)[-1].strip()
             location_hint = ""
 
-            if "on desktop" in after or "desktop pe" in after:
-                after = after.replace("on desktop", "").replace("desktop pe", "").strip()
+            if "on desktop" in after:
+                after = after.replace("on desktop", "").strip()
                 location_hint = "desktop"
             elif "in documents" in after:
                 after = after.replace("in documents", "").strip()
@@ -1004,7 +968,7 @@ class CommandHandler:
 
             name = after.strip().strip('"').strip("'")
             if not name:
-                return "Boss, folder ka naam clear nahi tha."
+                return "Folder name was not clear. Please specify a folder name."
 
             base_dir = os.path.expanduser("~")
             if location_hint == "desktop":
@@ -1015,7 +979,7 @@ class CommandHandler:
             full_path = os.path.join(base_dir, name)
             return self.desktop.create_folder(full_path)
 
-        # Open folder commands, e.g. "open folder Downloads", "folder Projects open karo"
+        # Open folder commands, e.g. "open folder Downloads"
         if "open folder" in text_lower or "folder " in text_lower:
             folder_part = text_lower
             if "open folder" in folder_part:
@@ -1023,13 +987,13 @@ class CommandHandler:
             elif "folder" in folder_part:
                 folder_part = folder_part.split("folder", 1)[-1]
 
-            for filler in ["open", "karo", "kholo", "please"]:
+            for filler in ["open", "please"]:
                 folder_part = folder_part.replace(filler, "")
             folder_name = folder_part.strip().strip('"').strip("'")
 
             if folder_name:
                 base_dir = os.path.expanduser("~")
-                if folder_name in ["desktop", "desktop pe"]:
+                if folder_name in ["desktop"]:
                     target = os.path.join(base_dir, "Desktop")
                 elif folder_name in ["documents"]:
                     target = os.path.join(base_dir, "Documents")

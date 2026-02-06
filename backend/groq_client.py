@@ -88,38 +88,25 @@ class GroqClient:
     # Atlas-specific helper: bilingual, Urdu-first, boss-aware persona
     # ------------------------------------------------------------------
 
-    def chat_as_atlas(self, user_message: str, max_tokens: int = 220, language_mode: str = "urdu") -> str:
+    def chat_as_atlas(self, user_message: str, max_tokens: int = 220, language_mode: str = "english") -> str:
         """
-        Talk to the Groq model as Atlas – a bilingual Urdu/English assistant.
+        Talk to the Groq model as Nova – an English-only desktop assistant.
 
-        Atlas behaviours:
-        - Understands both Urdu and English (and mixed speech)
-        - Replies primarily in Urdu
-        - Politely addresses the user as "boss" (e.g., "Ji boss", "Yes boss")
+        Nova behaviours:
+        - Understands English commands
+        - Replies in clear, natural English
+        - Provides helpful responses for desktop automation tasks
         - Keeps a short conversation memory
         """
         try:
-            # Choose system prompt based on desired language mode.
-            if language_mode.lower().startswith("eng"):
-                system_prompt = (
-                    "You are Atlas, an AI desktop assistant for Windows. "
-                    "You understand both Urdu and English, including mixed sentences. "
-                    "By default you reply in clear, natural English. "
-                    "Politely address the user as 'boss' in a light, friendly way "
-                    "(for example: 'Yes boss', 'Alright boss'). "
-                    "When the user asks you something, respond concisely but helpfully. "
-                    "Do not show JSON, code, or internal reasoning – just the final English reply."
-                )
-            else:
-                system_prompt = (
-                    "You are Atlas, an AI desktop assistant for Windows. "
-                    "You understand both Urdu and English, including mixed sentences. "
-                    "ALWAYS reply primarily in natural, friendly Urdu. "
-                    "Address the user as 'boss' in a respectful, light way "
-                    "(for example: 'Ji boss', 'Yes boss', 'Theek hai boss'). "
-                    "When the user asks you something, respond concisely but helpfully. "
-                    "Do not show JSON, code, or internal reasoning – just the final Urdu reply."
-                )
+            # English-only system prompt
+            system_prompt = (
+                "You are Nova, an AI desktop automation assistant for Windows. "
+                "You communicate strictly in English only. "
+                "Respond concisely and helpfully. "
+                "When users ask questions, provide clear English answers. "
+                "Do not show JSON, code, or internal reasoning – just the final English reply."
+            )
 
             messages: List[Dict[str, str]] = [
                 {"role": "system", "content": system_prompt},
@@ -154,5 +141,5 @@ class GroqClient:
 
             return reply
         except Exception as e:
-            return f"Maaf kijiye boss, mujhe koi masla aa gaya: {e}"
+            return f"Error communicating with AI: {str(e)}"
 

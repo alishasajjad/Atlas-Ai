@@ -13,6 +13,7 @@ import sys
 import time
 import threading
 import queue
+import webbrowser
 
 import streamlit as st
 
@@ -73,13 +74,9 @@ def initialize_session_state() -> None:
         st.session_state.recognized_text_queue = queue.Queue()
     if "status_queue" not in st.session_state:
         st.session_state.status_queue = queue.Queue()
-    # Language mode for Atlas responses: "english" (default) or "urdu"
+    # Language mode - English only
     if "language_mode" not in st.session_state:
-        # Speak in English by default; user can switch to Urdu via voice.
         st.session_state.language_mode = "english"
-    # Track whether we already auto-started listening in this session
-    if "auto_started_listening" not in st.session_state:
-        st.session_state.auto_started_listening = False
 
 
 # Initialize session_state BEFORE anything else (buttons, threads, etc.)
@@ -249,15 +246,13 @@ def _is_positive_confirmation(text: str) -> bool:
     t = text.lower()
     positives = [
         "yes",
-        "haan",
-        "han",
-        "ji",
-        "bilkul",
         "ok",
         "okay",
-        "theek hai",
-        "theek",
+        "confirm",
+        "proceed",
         "go ahead",
+        "sure",
+        "yep",
     ]
     return any(p in t for p in positives)
 
@@ -267,12 +262,12 @@ def _is_negative_confirmation(text: str) -> bool:
     t = text.lower()
     negatives = [
         "no",
-        "nahin",
-        "nahi",
-        "mat karo",
         "cancel",
-        "rok do",
+        "abort",
         "stop",
+        "don't",
+        "do not",
+        "nope",
     ]
     return any(n in t for n in negatives)
 
@@ -281,27 +276,27 @@ def _execute_pending_system_action() -> str:
     """
     Execute a previously stored system action (shutdown / restart / sleep).
 
-    Returns a human-readable status string (in Urdu-ish, addressed to boss).
+    Returns a human-readable status string in English.
     """
     action = st.session_state.pending_system_action
     st.session_state.pending_system_action = None
 
     if not action:
-        return "Ji boss, abhi koi pending kaam nahin tha."
+        return "No pending system action to execute."
 
     handler: CommandHandler = st.session_state.command_handler
 
     if action == "shutdown":
-        english_result = handler.shutdown_system()
-        return "Ji boss, ab system shutdown kar raha hoon."
+        result = handler.shutdown_system()
+        return "Shutting down the system now."
     if action == "restart":
-        english_result = handler.restart_system()
-        return "Ji boss, system ko restart kar raha hoon."
+        result = handler.restart_system()
+        return "Restarting the system now."
     if action == "sleep":
-        english_result = handler.sleep_system()
-        return "Ji boss, system ko sleep mode mein daal raha hoon."
+        result = handler.sleep_system()
+        return "Putting the system to sleep now."
 
-    return "Maaf kijiye boss, mujhe samajh nahi aaya kaunsa system action tha."
+    return "Unknown system action. Please try again."
 
 
 def handle_recognized_text(text: str) -> None:
@@ -369,19 +364,7 @@ def handle_recognized_text(text: str) -> None:
         }
     )
 
-    # --- 0. Handle language switch commands first (English <-> Urdu) ---
-    t_lower = lower_text
-    if any(phrase in t_lower for phrase in ["speak in urdu", "switch to urdu", "urdu mein bolo"]):
-        st.session_state.language_mode = "urdu"
-        response = "Ji boss, ab main Urdu mein baat karunga."
-    elif any(
-        phrase in t_lower
-        for phrase in ["speak in english", "switch to english", "english mein bolo"]
-    ):
-        st.session_state.language_mode = "english"
-        response = "Yes boss, I will speak in English from now on."
-    else:
-        response = None
+    response = None
 
     # --- 1. Handle pending confirmations for system actions ---
     if response is None and st.session_state.pending_system_action is not None:
@@ -390,13 +373,13 @@ def handle_recognized_text(text: str) -> None:
             response = _execute_pending_system_action()
         elif _is_negative_confirmation(text):
             st.session_state.pending_system_action = None
-            response = "Theek hai boss, main ye action cancel kar deta hoon."
+            response = "System action cancelled. No changes made."
         else:
             # Ask again / clarify
+            action_type = st.session_state.pending_system_action
             response = (
-                "Boss, aapne pehle jo system ka command diya tha "
-                "(shutdown / restart / sleep), uske liye please clearly "
-                "bolen: 'haan' ya 'nahi'."
+                f"You requested a {action_type} action. "
+                "Please confirm by saying 'yes' to proceed or 'no' to cancel."
             )
     # --- 2. Try local command handler (time, date, apps, searches, etc.) ---
     if response is None and st.session_state.command_handler is not None:
@@ -497,27 +480,51 @@ def handle_recognized_text(text: str) -> None:
         except Exception as e:
             response = f"Sorry boss, command chalate hue koi masla aa gaya: {e}"
 
-    # --- 2. If not recognized, fall back to Atlas (Groq) for conversation ---
+    # --- 3. If not recognized, check if it's a search query ---
+    if response is None:
+        # If it looks like a search query, open Google browser
+        search_indicators = ["search for", "what is", "who is", "where is", "how to", "tell me about"]
+        if any(indicator in lower_text for indicator in search_indicators) or (
+            len(text.split()) > 2 and "?" in text
+        ):
+            # Extract search query
+            query = text
+            for indicator in search_indicators:
+                if indicator in lower_text:
+                    query = text.lower().split(indicator, 1)[-1].strip()
+                    break
+            if query:
+                try:
+                    handler: CommandHandler = st.session_state.command_handler
+                    if handler:
+                        handler.search_google(query)
+                        response = f"Opening Google search for: {query}"
+                    else:
+                        response = "Opening Google browser for your search."
+                        webbrowser.open(f"https://www.google.com/search?q={query.replace(' ', '+')}")
+                except Exception as e:
+                    response = f"Error opening search: {str(e)}"
+    
+    # --- 4. If still not handled, use Groq for conversation (English only) ---
     if response is None:
         if st.session_state.groq_client is not None:
             safe_update_status("thinking")
             try:
-                # Ask Atlas in the currently selected language (English default,
-                # Urdu when the user has explicitly switched).
+                # Use English-only mode
                 response = st.session_state.groq_client.chat_as_atlas(
-                    text, language_mode=st.session_state.language_mode
+                    text, language_mode="english"
                 )
 
-                # If the user asked Atlas to "write" or "generate" content,
+                # If the user asked to "write" or "generate" content,
                 # also type the generated text directly into the active window.
                 if any(
-                    phrase in t_lower
+                    phrase in lower_text
                     for phrase in [
                         "write ",
                         "generate ",
                         "create a paragraph",
                         "create paragraph",
-                        "likho ",
+                        "type ",
                     ]
                 ) and st.session_state.command_handler is not None:
                     try:
@@ -526,22 +533,14 @@ def handle_recognized_text(text: str) -> None:
                     except Exception as e:
                         print(f"Error while typing generated content: {e}")
             except Exception as e:
-                lang = st.session_state.language_mode
-                if lang == "urdu":
-                    response = (
-                        f"Maaf kijiye boss, AI se baat karte hue koi error aa gaya: {e}"
-                    )
-                else:
-                    response = (
-                        f"Sorry boss, there was an error talking to the AI: {e}"
-                    )
+                response = f"Error communicating with AI: {str(e)}"
         else:
             response = (
-                "Boss, the Groq AI client is not configured yet. "
+                "The Groq AI client is not configured. "
                 "Please set GROQ_API_KEY in the `.env` file."
             )
 
-    # 3. Record assistant response (always Urdu/boss-aware now)
+    # 5. Record assistant response (English only)
     st.session_state.conversation_history.append(
         {
             "role": "assistant",
@@ -764,11 +763,6 @@ def main() -> None:
         else:
             st.info("No conversation history yet.")
     
-    # Auto-start listening once per session so Nova reacts as soon as you talk
-    if not st.session_state.listening and not st.session_state.auto_started_listening:
-        start_listening()
-        st.session_state.auto_started_listening = True
-
     # Auto-refresh to keep polling the background queues while listening
     if st.session_state.listening:
         st.session_state.refresh_counter += 1
