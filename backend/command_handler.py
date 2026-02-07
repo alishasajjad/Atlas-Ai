@@ -603,7 +603,7 @@ class CommandHandler:
         Args:
             query: The search query string
         """
-    if pwt is None:
+        if pwt is None:
             return "YouTube search is not available in this environment (headless mode)."
         try:
             pwt.playonyt(query)

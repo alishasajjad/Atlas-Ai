@@ -33,7 +33,7 @@ class DesktopAutomation:
 
     def __init__(self) -> None:
         # Avoid accidental kill-switch if mouse moves to corner
-           if pyautogui:
+        if pyautogui:
             pyautogui.FAILSAFE = False
 
     def open_website(self, url: str) -> str:
