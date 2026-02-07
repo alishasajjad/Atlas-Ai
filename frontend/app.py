@@ -17,14 +17,7 @@ import queue
 import webbrowser
 
 import streamlit as st
-import types
 
-# Prevent DISPLAY errors on headless servers
-os.environ['DISPLAY'] = ':0'
-
-# Mock GUI libraries
-sys.modules['pyautogui'] = types.ModuleType('pyautogui')
-sys.modules['mouseinfo'] = types.ModuleType('mouseinfo')
 # Ensure project root is on sys.path so we can import the backend package
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if PROJECT_ROOT not in sys.path:
