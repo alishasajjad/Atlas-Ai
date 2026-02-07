@@ -3,7 +3,11 @@ Voice Recognition Module
 Handles continuous speech-to-text conversion using the speech_recognition library.
 """
 
-import speech_recognition as sr
+try:
+    import speech_recognition as sr
+except Exception:
+    sr = None
+
 import threading
 import queue
 
@@ -12,16 +16,19 @@ class VoiceRecognizer:
     """
     A class to handle continuous voice recognition from microphone input.
     """
-    
+
     def __init__(self):
         """Initialize the voice recognizer with default settings."""
-        self.recognizer = sr.Recognizer()
+        if sr is not None:
+            self.recognizer = sr.Recognizer()
+        else:
+            self.recognizer = None
         self.microphone = None  # Will be initialized when needed
         self.audio_queue = queue.Queue()
         self.is_listening = False
         self.recognition_thread = None
         self._microphone_context = None  # Track context manager
-    
+
     def recognize_audio(self, audio_data):
         """
         Convert audio data to text using Google's speech recognition.
@@ -33,6 +40,8 @@ class VoiceRecognizer:
         Returns:
             str: Recognized text (lowercased) or None if recognition fails
         """
+        if self.recognizer is None:
+            return None
         try:
             text = self.recognizer.recognize_google(audio_data, language="en-US")
             return text.lower()
@@ -43,20 +52,25 @@ class VoiceRecognizer:
             # API was unreachable or unresponsive
             print(f"Could not request results from speech recognition service: {e}")
             return None
-    
+
     def listen_continuously(self, callback, status_callback=None):
         """
         Continuously listen to microphone input and process speech.
-        
+
         Args:
             callback: Function to call when speech is recognized (receives text as parameter)
             status_callback: Optional function to call with status updates
         """
+        if sr is None or self.recognizer is None:
+            if status_callback:
+                status_callback("error: Speech recognition is not available in this environment")
+            return
+
         if self.is_listening:
             return  # Already listening
-        
+
         self.is_listening = True
-        
+
         # Initialize microphone if not already done
         if self.microphone is None:
             try:
@@ -68,9 +82,11 @@ class VoiceRecognizer:
                 print("Ambient noise adjustment complete.")
             except Exception as e:
                 print(f"Error initializing microphone: {e}")
+                if status_callback:
+                    status_callback(f"error: Microphone not available: {e}")
                 self.is_listening = False
                 return
-        
+
         def audio_capture_thread():
             """Thread function to continuously capture audio."""
             try:
@@ -105,11 +121,11 @@ class VoiceRecognizer:
                 print(f"Error in microphone context: {e}")
             finally:
                 self._microphone_context = None
-        
+
         # Start the recognition thread
         self.recognition_thread = threading.Thread(target=audio_capture_thread, daemon=True)
         self.recognition_thread.start()
-    
+
     def stop_listening(self):
         """Stop the continuous listening process."""
         self.is_listening = False
@@ -118,4 +134,3 @@ class VoiceRecognizer:
             self.recognition_thread.join(timeout=2)
         # Clear microphone context reference
         self._microphone_context = None
-

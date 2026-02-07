@@ -4,6 +4,9 @@ libportaudio2
 libportaudiocpp0
 ffmpeg
 espeak
+espeak-ng
+libespeak-dev
 scrot
 python3-tk
 python3-dev
+xvfb

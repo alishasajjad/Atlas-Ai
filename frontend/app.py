@@ -258,25 +258,43 @@ st.markdown("""
 
 
 def initialize_components() -> bool:
-    """Initialize all Nova AI components."""
-    try:
-        if st.session_state.voice_recognizer is None:
+    """Initialize all Nova AI components. Each component is initialized
+    independently so that one failure doesn't block the rest."""
+    all_ok = True
+
+    if st.session_state.voice_recognizer is None:
+        try:
             st.session_state.voice_recognizer = VoiceRecognizer()
-        if st.session_state.tts is None:
+        except Exception as e:
+            print(f"Voice recognizer init failed (non-fatal): {e}")
+            all_ok = False
+
+    if st.session_state.tts is None:
+        try:
             st.session_state.tts = TextToSpeech()
-        if st.session_state.command_handler is None:
+        except Exception as e:
+            print(f"TTS init failed (non-fatal): {e}")
+            all_ok = False
+
+    if st.session_state.command_handler is None:
+        try:
             st.session_state.command_handler = CommandHandler()
-        if st.session_state.groq_client is None:
-            try:
-                st.session_state.groq_client = GroqClient()
-            except ValueError as e:
-                st.error(f"⚠️ {str(e)}")
-                st.info("💡 Please create a `.env` file in the project root with: `GROQ_API_KEY=your_api_key_here`")
-                return False
-        return True
-    except Exception as e:
-        st.error(f"Error initializing components: {str(e)}")
-        return False
+        except Exception as e:
+            print(f"Command handler init failed (non-fatal): {e}")
+            all_ok = False
+
+    if st.session_state.groq_client is None:
+        try:
+            st.session_state.groq_client = GroqClient()
+        except ValueError as e:
+            st.error(f"⚠️ {str(e)}")
+            st.info("💡 Please create a `.env` file in the project root with: `GROQ_API_KEY=your_api_key_here`")
+            all_ok = False
+        except Exception as e:
+            print(f"Groq client init failed (non-fatal): {e}")
+            all_ok = False
+
+    return all_ok
 
 
 def safe_update_status(raw_status: str) -> None:

@@ -9,3 +9,13 @@ pyautogui>=0.9.54
 send2trash>=1.8.2
 pyperclip>=1.8.2
 pygetwindow>=0.0.9
+
+portaudio19-dev
+libasound-dev
+libportaudio2
+libportaudiocpp0
+ffmpeg
+espeak
+scrot
+python3-tk
+python3-dev
