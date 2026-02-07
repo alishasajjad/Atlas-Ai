@@ -18,7 +18,10 @@ import webbrowser
 from pathlib import Path
 from typing import Optional
 
-import pyautogui
+try:
+    import pyautogui
+except Exception:
+    pyautogui = None
 try:
     import pyperclip  # type: ignore
 except Exception:  # pragma: no cover - optional dependency
@@ -30,7 +33,8 @@ class DesktopAutomation:
 
     def __init__(self) -> None:
         # Avoid accidental kill-switch if mouse moves to corner
-        pyautogui.FAILSAFE = False
+           if pyautogui:
+            pyautogui.FAILSAFE = False
 
     def open_website(self, url: str) -> str:
         """Open the given URL in the default browser."""
