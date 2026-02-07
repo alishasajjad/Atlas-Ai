@@ -11,7 +11,10 @@ import os
 import re
 import shutil
 import webbrowser
-import pywhatkit as pwt
+try:
+    import pywhatkit as pwt
+except Exception:
+    pwt = None
 from datetime import datetime
 import subprocess
 from typing import Optional, List
@@ -600,6 +603,8 @@ class CommandHandler:
         Args:
             query: The search query string
         """
+         if pwt is None:
+            return "YouTube search is not available in this environment (headless mode)."
         try:
             pwt.playonyt(query)
             return f"Searching YouTube for {query}"
