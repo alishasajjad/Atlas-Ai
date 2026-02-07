@@ -1,0 +1,9 @@
+portaudio19-dev
+libasound-dev
+libportaudio2
+libportaudiocpp0
+ffmpeg
+espeak
+scrot
+python3-tk
+python3-dev
